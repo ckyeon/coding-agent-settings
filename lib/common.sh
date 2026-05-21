@@ -8,3 +8,16 @@ detect_os() {
     *)      return 1 ;;
   esac
 }
+
+# Print one plugin name per line for every user/shared/plugins/<name>/ that
+# has a .provenance.json sidecar. Empty output if none. Used by install.sh /
+# uninstall.sh to surface manual /plugin install hints.
+list_tracked_plugins() {
+  local repo_root="$1"
+  local d
+  for d in "$repo_root"/user/shared/plugins/*/; do
+    [ -d "$d" ] || continue
+    [ -f "$d/.provenance.json" ] || continue
+    basename "$d"
+  done
+}

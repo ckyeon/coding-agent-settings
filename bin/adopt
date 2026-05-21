@@ -5,7 +5,9 @@
 # Idempotent additive: re-running with the same destination appends another
 # entry to provenance[] (useful for items that draw from multiple sources).
 #
-# Does NOT commit on your behalf — prints a suggested git command at the end.
+# Auto-refreshes SOURCES.md at the end (suppress with --no-index).
+# Does NOT commit on your behalf by default — prints a suggested git command.
+# Pass --commit-now to have this script create the commit itself.
 
 set -euo pipefail
 
@@ -18,52 +20,62 @@ source "$REPO_ROOT/lib/provenance.sh"
 usage() {
   cat <<'EOF'
 Usage:
-  bin/adopt --from <repo-url> --commit <sha-7-to-40> --path <path-in-source-repo> \
+  bin/adopt --from <repo-url> [--commit <sha>] --path <path-in-source-repo> \
             --to <local-dest> --mode copied|inspired-by --license <SPDX> \
-            [--notes "..."]
+            [--notes "..."] [--no-index] [--commit-now] [--allow-duplicate]
 
 Adopt content from an external repo and record provenance.
 
-  --from        Upstream repository URL (https:// or git@)
-  --commit      Source commit SHA (7-40 hex chars; resolved to full 40 via ls-remote)
-  --path        Path within the source repo to the adopted content
-  --to          Local destination (folder or file). For copied mode this is
-                where content lands. For inspired-by mode this must already exist.
-  --mode        'copied' (content reproduced) | 'inspired-by' (your impl, their idea)
-  --license     SPDX identifier (e.g., MIT, Apache-2.0, GPL-3.0; Unknown / None allowed)
-  --notes       Optional free-form annotation
+  --from              Upstream repository URL (https:// or git@)
+  --commit            Source commit SHA (7-40 hex chars; resolved to full 40).
+                      Defaults to the upstream HEAD when omitted.
+  --path              Path within the source repo to the adopted content
+  --to                Local destination (folder or file). For copied mode this
+                      is where content lands. For inspired-by mode this must
+                      already exist.
+  --mode              'copied' (content reproduced) | 'inspired-by' (your impl, their idea)
+  --license           SPDX identifier (MIT, Apache-2.0, GPL-3.0; Unknown / None allowed)
+  --notes             Optional free-form annotation
+  --no-index          Skip the automatic bin/sources-index refresh at the end
+  --commit-now        Create the suggested git commit automatically. Requires
+                      the working tree to be clean apart from this adoption.
+  --allow-duplicate   Suppress the warning when --mode copied targets a plugin
+                      that appears already installed via Claude Code's official
+                      plugin marketplace.
 
 Outputs:
-  - Writes (or appends to) <dest>/.provenance.json  (if dest is a folder)
-                       or <dest>.provenance.json    (if dest is a file)
-  - Prints a `git commit` command with trailers — you run it yourself.
-
-Refresh the index afterwards:
-  bin/sources-index
+  - Writes (or appends to) <dest>/.provenance.json (folder dest) or
+    <dest>.provenance.json (file dest)
+  - Refreshes SOURCES.md (unless --no-index)
+  - Prints a `git commit` command with trailers, or creates the commit
+    directly when --commit-now is passed.
 EOF
 }
 
 # ----- Parse args -----
 FROM="" COMMIT="" PATH_IN_REPO="" TO="" MODE="" LICENSE="" NOTES=""
+NO_INDEX=0 COMMIT_NOW=0 ALLOW_DUPLICATE=0
 
 while [ $# -gt 0 ]; do
   case "$1" in
-    --from)    FROM="${2:-}"; shift 2 ;;
-    --commit)  COMMIT="${2:-}"; shift 2 ;;
-    --path)    PATH_IN_REPO="${2:-}"; shift 2 ;;
-    --to)      TO="${2:-}"; shift 2 ;;
-    --mode)    MODE="${2:-}"; shift 2 ;;
-    --license) LICENSE="${2:-}"; shift 2 ;;
-    --notes)   NOTES="${2:-}"; shift 2 ;;
-    -h|--help) usage; exit 0 ;;
-    *)         echo "ERROR: unknown arg '$1'" >&2; echo "" >&2; usage >&2; exit 1 ;;
+    --from)             FROM="${2:-}"; shift 2 ;;
+    --commit)           COMMIT="${2:-}"; shift 2 ;;
+    --path)             PATH_IN_REPO="${2:-}"; shift 2 ;;
+    --to)               TO="${2:-}"; shift 2 ;;
+    --mode)             MODE="${2:-}"; shift 2 ;;
+    --license)          LICENSE="${2:-}"; shift 2 ;;
+    --notes)            NOTES="${2:-}"; shift 2 ;;
+    --no-index)         NO_INDEX=1; shift ;;
+    --commit-now)       COMMIT_NOW=1; shift ;;
+    --allow-duplicate)  ALLOW_DUPLICATE=1; shift ;;
+    -h|--help)          usage; exit 0 ;;
+    *)                  echo "ERROR: unknown arg '$1'" >&2; echo "" >&2; usage >&2; exit 1 ;;
   esac
 done
 
-# ----- Validate -----
+# ----- Validate required args (--commit is optional; defaults to HEAD) -----
 missing=""
 [ -z "$FROM" ]         && missing="$missing --from"
-[ -z "$COMMIT" ]       && missing="$missing --commit"
 [ -z "$PATH_IN_REPO" ] && missing="$missing --path"
 [ -z "$TO" ]           && missing="$missing --to"
 [ -z "$MODE" ]         && missing="$missing --mode"
@@ -80,13 +92,105 @@ if ! [[ "$FROM" =~ ^(https?://|git@|ssh://|file://|/) ]]; then
   exit 1
 fi
 
-# Commit SHA must be 7-40 hex chars
-if ! [[ "$COMMIT" =~ ^[0-9a-f]{7,40}$ ]]; then
+if [ -n "$COMMIT" ] && ! [[ "$COMMIT" =~ ^[0-9a-f]{7,40}$ ]]; then
   echo "ERROR: --commit must be 7-40 lowercase hex chars, got: $COMMIT" >&2
   exit 1
 fi
 
 validate_mode "$MODE"
+
+# ----- Resolve HEAD when --commit was omitted -----
+if [ -z "$COMMIT" ]; then
+  echo "Resolving upstream HEAD..."
+  LS_REMOTE_OUT="$(git ls-remote --symref "$FROM" HEAD 2>/dev/null)" || {
+    echo "ERROR: failed to ls-remote $FROM" >&2
+    exit 1
+  }
+  HEAD_REF="$(echo "$LS_REMOTE_OUT" | awk '/^ref:/ {print $2}')"
+  HEAD_SHA="$(echo "$LS_REMOTE_OUT" | awk '$2 == "HEAD" && $1 ~ /^[0-9a-f]{40}$/ {print $1}')"
+  if [ -z "$HEAD_SHA" ]; then
+    echo "ERROR: could not parse HEAD SHA from ls-remote output" >&2
+    exit 1
+  fi
+  echo "  Resolved HEAD${HEAD_REF:+ ($HEAD_REF)}: $HEAD_SHA"
+  COMMIT="$HEAD_SHA"
+fi
+
+# ----- Duplicate-install warning (copied mode only) -----
+check_duplicate_install() {
+  [ "$MODE" = "copied" ] || return 0
+  [ "$ALLOW_DUPLICATE" -eq 1 ] && return 0
+  local marketplaces_file="$HOME/.claude/plugins/known_marketplaces.json"
+  local installed_file="$HOME/.claude/plugins/installed_plugins.json"
+  [ -f "$marketplaces_file" ] || return 0
+  [ -f "$installed_file" ] || return 0
+
+  local match
+  match="$(
+    FROM_URL="$FROM" P_PATH="$PATH_IN_REPO" \
+    MARKETPLACES="$marketplaces_file" INSTALLED="$installed_file" \
+    python3 - <<'PYEOF'
+import json, os, re, sys
+
+from_url = os.environ["FROM_URL"]
+path_in_repo = os.environ["P_PATH"]
+
+m = re.search(r'[/:]([^/:]+/[^/]+?)(\.git)?$', from_url)
+if not m:
+    sys.exit(0)
+owner_repo = m.group(1)
+
+parts = path_in_repo.strip("/").split("/")
+if len(parts) < 2 or parts[0] != "plugins":
+    sys.exit(0)
+plugin_name = parts[1]
+
+try:
+    with open(os.environ["MARKETPLACES"]) as f:
+        marketplaces = json.load(f)
+except Exception:
+    sys.exit(0)
+
+matching = [
+    name for name, cfg in marketplaces.items()
+    if isinstance(cfg, dict) and cfg.get("source", {}).get("repo") == owner_repo
+]
+if not matching:
+    sys.exit(0)
+
+try:
+    with open(os.environ["INSTALLED"]) as f:
+        installed = json.load(f)
+except Exception:
+    sys.exit(0)
+
+installed_plugins = installed.get("plugins", {}) if isinstance(installed, dict) else {}
+for mp in matching:
+    key = f"{plugin_name}@{mp}"
+    if key in installed_plugins:
+        print(key)
+        sys.exit(0)
+PYEOF
+  )"
+
+  [ -n "$match" ] || return 0
+
+  echo "" >&2
+  echo "⚠  $match looks already installed via Claude Code's plugin marketplace." >&2
+  echo "   Consider --mode inspired-by (no file copy) and a destination under user/shared/plugins/." >&2
+  echo "" >&2
+  if [ -t 0 ]; then
+    read -r -p "Continue with --mode copied anyway? [y/N] " reply
+    case "$reply" in
+      y|Y|yes|YES) return 0 ;;
+      *) echo "Aborted." >&2; exit 1 ;;
+    esac
+  else
+    echo "Aborting (non-interactive). Pass --allow-duplicate to override." >&2
+    exit 1
+  fi
+}
+check_duplicate_install
 
 # ----- Clone upstream (blobless, no checkout) -----
 TMPDIR="$(mktemp -d)"
@@ -150,25 +254,99 @@ ADOPTED_AT="$(date +%Y-%m-%d)"
 append_provenance "$SIDECAR" "$FROM" "$FULL_SHA" "$PATH_IN_REPO" "$LICENSE" "$MODE" "$ADOPTED_AT" "$NOTES"
 echo "Sidecar updated: $SIDECAR"
 
-# ----- Print commit suggestion -----
+# ----- Auto-refresh SOURCES.md -----
+if [ "$NO_INDEX" -eq 0 ]; then
+  "$REPO_ROOT/bin/sources-index"
+fi
+
+# ----- Compose commit metadata -----
 SHORT_SHA="$(echo "$FULL_SHA" | cut -c1-8)"
 # Best-effort owner/repo extraction (e.g., github.com/foo/bar.git → foo/bar)
 REPO_SLUG="$(echo "$FROM" | sed -E 's#^.*[/:]([^/:]+/[^/]+)$#\1#' | sed 's/\.git$//')"
 DEST_NAME="$(basename "$TO")"
+COMMIT_TITLE="Adopt $DEST_NAME from ${REPO_SLUG}@${SHORT_SHA}"
 
-cat <<EOF
+# ----- Either commit, or print suggestion -----
+if [ "$COMMIT_NOW" -eq 1 ]; then
+  # Verify working tree has no unrelated dirty files
+  if [ "$NO_INDEX" -eq 0 ]; then
+    EXPECTED_PATHS="$TO"$'\n'"$SIDECAR"$'\n'"SOURCES.md"
+  else
+    EXPECTED_PATHS="$TO"$'\n'"$SIDECAR"
+  fi
+
+  UNEXPECTED="$(
+    cd "$REPO_ROOT"
+    DIRTY="$(git status --porcelain)" \
+    EXPECTED="$EXPECTED_PATHS" \
+    python3 - <<'PYEOF'
+import os, sys
+
+# Normalize each expected path to its repo-relative form.
+expected = set()
+for p in os.environ.get("EXPECTED", "").splitlines():
+    p = p.strip()
+    if not p:
+        continue
+    expected.add(os.path.relpath(os.path.abspath(p), os.getcwd()))
+
+unexpected = []
+for line in os.environ.get("DIRTY", "").splitlines():
+    # Porcelain v1: 'XY <path>' or 'XY <old> -> <new>' for renames.
+    if len(line) < 4:
+        continue
+    rest = line[3:]
+    if " -> " in rest:
+        rest = rest.split(" -> ", 1)[1]
+    path = rest.strip()
+    matched = any(path == e or path.startswith(e.rstrip("/") + "/") for e in expected)
+    if not matched:
+        unexpected.append(path)
+
+for p in unexpected:
+    print(p)
+PYEOF
+  )"
+
+  if [ -n "$UNEXPECTED" ]; then
+    echo "" >&2
+    echo "ERROR: --commit-now refused; working tree has unrelated changes:" >&2
+    echo "$UNEXPECTED" | sed 's/^/  /' >&2
+    echo "" >&2
+    echo "Commit or stash those separately, then re-run with --commit-now." >&2
+    exit 1
+  fi
+
+  cd "$REPO_ROOT"
+  git add "$TO" "$SIDECAR"
+  [ "$NO_INDEX" -eq 0 ] && git add SOURCES.md
+  git commit \
+    -m "$COMMIT_TITLE" \
+    --trailer "Source-Repo: $FROM" \
+    --trailer "Source-Commit: $FULL_SHA" \
+    --trailer "Adopt-Mode: $MODE"
+
+  echo ""
+  echo "Adoption committed."
+else
+  if [ "$NO_INDEX" -eq 0 ]; then
+    ADD_LINE="  git add \"$TO\" \"$SIDECAR\" SOURCES.md"
+  else
+    ADD_LINE="  git add \"$TO\" \"$SIDECAR\""
+  fi
+  cat <<EOF
 
 ──────────────────────────────────────────────────────────────────────
 Adoption recorded. Suggested next steps:
 
-  git add "$TO" "$SIDECAR"
+$ADD_LINE
   git commit \\
-    -m "Adopt $DEST_NAME from ${REPO_SLUG}@${SHORT_SHA}" \\
+    -m "$COMMIT_TITLE" \\
     --trailer "Source-Repo: $FROM" \\
     --trailer "Source-Commit: $FULL_SHA" \\
     --trailer "Adopt-Mode: $MODE"
 
-Then refresh the index:
-  bin/sources-index
+(Tip: pass --commit-now next time to skip this copy-paste.)
 ──────────────────────────────────────────────────────────────────────
 EOF
+fi

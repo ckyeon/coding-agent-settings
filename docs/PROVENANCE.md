@@ -103,6 +103,31 @@ Walks the repo for every `*.provenance.json` file and rewrites `SOURCES.md` with
 
 Run it after every `adopt`, or as a pre-commit hook if you want full automation.
 
+## Tracking officially-installed plugins
+
+When a Claude Code plugin (with `.claude-plugin/plugin.json`) is installed via the official marketplace flow (`/plugin install <name>@<marketplace>`), the runtime artifact lives under `~/.claude/plugins/cache/<marketplace>/<name>/<version>/` and is managed by Claude Code's plugin CLI — not by this repo. To still record which upstream commit you're pinning to, use the **provenance-only** pattern:
+
+1. Create `user/shared/plugins/<name>/` with a short `README.md` explaining that the directory exists for provenance only (no source vendored). The README satisfies `bin/adopt --mode inspired-by`'s "destination must exist" requirement.
+2. Run `bin/adopt --mode inspired-by` against that directory with the upstream `--path plugins/<name>` and the commit SHA.
+
+```bash
+mkdir -p user/shared/plugins/<name>
+$EDITOR user/shared/plugins/<name>/README.md   # see canonical examples below
+bin/adopt --from <marketplace-repo-url> \
+          --commit <sha> \
+          --path plugins/<name> \
+          --to user/shared/plugins/<name> \
+          --mode inspired-by --license <SPDX>
+```
+
+This produces a sidecar with `adopted-as: "inspired-by"` and no source files. `bin/sources-index` lists the entry alongside `copied` ones; `install.sh` / `uninstall.sh` print plugin-name hints reminding you to run `/plugin install` (or `/plugin uninstall`) separately in a Claude Code session.
+
+Canonical examples in this repo:
+- `user/shared/plugins/hookify/` — plugin whose Python codebase cannot be split sensibly
+- `user/shared/plugins/claude-md-management/` — plugin that's also `/plugin install`-able; provenance-only avoids duplicating what the marketplace already manages
+
+When to prefer this over **split adoption** (copying skills/commands out of a plugin): use provenance-only whenever the plugin ships through a marketplace you've already added, or when the plugin has a `.claude-plugin/plugin.json` and you want Claude Code's official loader to handle activation. Use split adoption when you want only one artifact from a plugin and don't want the rest, or when the upstream isn't a marketplace plugin at all.
+
 ## License compatibility
 
 Each provenance entry records the upstream `license`. The auto-generated `SOURCES.md` provides a single browseable attribution list, which usually satisfies MIT / Apache-2.0 / BSD attribution requirements. For GPL-licensed sources, redistribution constraints apply — `SOURCES.md` is a starting point, not a substitute for license review.

@@ -48,7 +48,8 @@ OS-specific files live under `user/mac/` or `user/linux/`. `install.sh` detects 
 │   │   ├── agents/             # → ~/.claude/agents
 │   │   ├── hooks/              # → ~/.claude/hooks/shared
 │   │   ├── rules/              # → ~/.claude/rules
-│   │   └── output-styles/      # → ~/.claude/output-styles
+│   │   ├── output-styles/      # → ~/.claude/output-styles
+│   │   └── plugins/            # provenance-only (not symlinked; see Provenance / Sources)
 │   ├── mac/
 │   │   ├── statusline-command.sh
 │   │   └── hooks/              # → ~/.claude/hooks/os (when on Mac)
@@ -147,6 +148,33 @@ This copies the upstream content, writes `user/shared/skills/notify/.provenance.
 
 See [`docs/PROVENANCE.md`](docs/PROVENANCE.md) for the schema, conventions, and edge cases. The tooling uses Python 3 standard library only (no external dependencies required).
 
+### Adopting a Claude Code plugin
+
+Plugins from a marketplace repo (e.g., `anthropics/claude-plugins-official`) ship a `.claude-plugin/plugin.json` and often bundle skills + commands + agents + Python hooks together. There are two adoption patterns depending on whether you want to vendor source or just track that the plugin is part of your setup.
+
+**Split adoption** — extract individual artifacts. Use when the upstream plugin's pieces are independent and you want them activated through this repo's existing user-scope symlinks (`~/.claude/skills/`, `~/.claude/commands/`, …).
+
+```bash
+bin/adopt --from https://github.com/anthropics/claude-plugins-official.git \
+          --commit <sha> \
+          --path plugins/<plugin>/skills/<skill> \
+          --to user/shared/skills/<skill> \
+          --mode copied --license Apache-2.0
+```
+
+**Provenance-only** — record the upstream pin, but don't copy any source. Use when you've installed the plugin via Claude Code's official `/plugin install <name>@<marketplace>` and just want this repo to remember which commit was active.
+
+```bash
+mkdir -p user/shared/plugins/<plugin> && echo "# <plugin> (provenance-only)" > user/shared/plugins/<plugin>/README.md
+bin/adopt --from https://github.com/anthropics/claude-plugins-official.git \
+          --commit <sha> \
+          --path plugins/<plugin> \
+          --to user/shared/plugins/<plugin> \
+          --mode inspired-by --license Apache-2.0
+```
+
+The provenance-only directory is **not** symlinked into `~/.claude/plugins/` — that path is owned by Claude Code's plugin CLI. `install.sh` and `uninstall.sh` print reminders listing tracked plugins so you don't forget the `/plugin install` step on a fresh machine. See `user/shared/plugins/hookify/` and `user/shared/plugins/claude-md-management/` for canonical examples.
+
 ## What this repo deliberately does NOT manage
 
 Claude Code creates and updates many files under `~/.claude/` at runtime. None of them are touched by this repo:
@@ -157,4 +185,4 @@ Claude Code creates and updates many files under `~/.claude/` at runtime. None o
 - `history.jsonl`, `usage-data/`, `telemetry/`, `cache/` — telemetry/cache
 - `credentials.json`, `mcp.json` — secrets (managed out-of-band per machine)
 - `settings.local.json` — per-machine override
-- `plugins/` — installed by Claude Code itself
+- `~/.claude/plugins/` — Claude Code's own plugin CLI state (marketplaces, installed-plugin registry, cache). Distinct from `user/shared/plugins/` in this repo, which only tracks provenance for plugins you've installed via `/plugin install` (see Provenance / Sources).

@@ -63,3 +63,16 @@ echo "Done: $created created, $backed_up backed up (suffix: .backup-$TS), $skipp
 if [ "$backed_up" -gt 0 ]; then
   echo "Tip: review backups with: find $CLAUDE_DIR -maxdepth 2 -name '*.backup-$TS'"
 fi
+
+PLUGIN_NAMES="$(list_tracked_plugins "$REPO_ROOT")"
+if [ -n "$PLUGIN_NAMES" ]; then
+  echo ""
+  echo "Plugin-tracked entries (NOT installed by this script — see user/shared/plugins/):"
+  while IFS= read -r name; do
+    echo "  - $name"
+  done <<< "$PLUGIN_NAMES"
+  echo ""
+  echo "Inside a Claude Code session, run:"
+  echo "  /plugin marketplace add <source-url>      # if not yet registered"
+  echo "  /plugin install <name>@<marketplace>      # per plugin above"
+fi
