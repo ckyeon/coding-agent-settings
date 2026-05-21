@@ -1,0 +1,13 @@
+{
+  "provenance": [
+    {
+      "source": "https://github.com/anthropics/claude-plugins-official.git",
+      "commit": "6cc16f4b16e80893695da60b8b82a236be9f9546",
+      "path": "plugins/hookify",
+      "license": "Apache-2.0",
+      "adopted-as": "inspired-by",
+      "adopted-at": "2026-05-21",
+      "notes": "Installed via Claude Code's official /plugin install hookify@claude-plugins-official. This repo tracks provenance only; no files are copied. Plugin contents include skill (writing-rules), commands (configure/help/hookify/list), agent (conversation-analyzer), and hooks (pre/post tool use, stop, user prompt submit) — see upstream for source."
+    }
+  ]
+}
