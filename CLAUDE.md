@@ -5,7 +5,8 @@ This repo manages Claude Code settings across User and Project scopes, with prov
 ## Repo at a glance
 
 - `user/{shared,mac,linux}/` — User-scope settings; symlinked into `~/.claude/` by `./install.sh`.
-- `project-templates/{_base,nodejs,python,go}/` — Templates copied into new projects via manual `cp -r` (no scaffold script).
+- `user/shared/plugins/` — Provenance-only for plugins installed via Claude Code's `/plugin install`. Not symlinked; see `docs/PROVENANCE.md` § "Tracking officially-installed plugins".
+- `project-templates/{_base,nodejs,python,go,phaser}/` — Templates copied into new projects via manual `cp -r` (no scaffold script).
 - `bin/adopt`, `bin/sources-index` — Provenance tooling. JSON sidecars + auto-generated `SOURCES.md`.
 - `docs/PROVENANCE.md` — Schema and edge cases for provenance.
 
@@ -13,11 +14,19 @@ This repo manages Claude Code settings across User and Project scopes, with prov
 
 ### Adopt an external item
 
-1. `bin/adopt --from <url> --commit <sha> --path <p> --to <dest> --mode copied|inspired-by --license <SPDX> [--notes "..."]`
-2. `bin/sources-index`
-3. Review the diff and the new `.provenance.json` sidecar.
-4. Commit using the `git commit ... --trailer ...` form `bin/adopt` printed (include `SOURCES.md` in the same commit).
-5. Push only on explicit user request.
+1. `bin/adopt --from <url> [--commit <sha>] --path <p> --to <dest> --mode copied|inspired-by --license <SPDX> [--notes "..."]`. Omitting `--commit` pins to upstream HEAD. Auto-runs `bin/sources-index` unless `--no-index`.
+2. Review the diff and the new `.provenance.json` sidecar.
+3. Commit using the printed `git commit ... --trailer ...` form (include `SOURCES.md`), or pass `--commit-now` to step 1 to skip the copy-paste.
+4. Push only on explicit user request.
+
+### Track an officially-installed plugin
+
+Claude Code marketplace plugins (installed via `/plugin install <name>@<marketplace>`) are activated by the plugin CLI, not by this repo's symlinks. To record provenance:
+
+1. `mkdir -p user/shared/plugins/<name> && $EDITOR user/shared/plugins/<name>/README.md`
+2. `bin/adopt --from <marketplace-repo-url> --path plugins/<name> --to user/shared/plugins/<name> --mode inspired-by --license <SPDX>`
+
+`install.sh` / `uninstall.sh` print `/plugin install` reminders listing tracked plugins. Canonical examples: `user/shared/plugins/hookify/`, `user/shared/plugins/claude-md-management/`.
 
 ### Add a self-authored item
 
@@ -35,6 +44,7 @@ Re-run `bin/adopt` against the same destination with the new SHA. The sidecar's 
 - **No `git push` without an explicit request.**
 - **Dependencies stay minimal**: Python 3 stdlib + bash 3.2 only. Don't introduce `yq`, `PyYAML`, `jq`, or other external deps.
 - **Provenance lives in sidecars only.** Never inline in `SKILL.md` / agent / command / `CLAUDE.md` frontmatter — those files load into Claude's context when invoked, so embedded metadata becomes context noise.
+- **Two `plugins/` directories — don't confuse them.** `~/.claude/plugins/` is Claude Code's own plugin CLI state (registry, marketplaces, cache); never symlinked from here. `user/shared/plugins/` in this repo is provenance-only — no source vendored; activation is via `/plugin install`.
 
 ## References
 
