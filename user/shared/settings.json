@@ -7,5 +7,6 @@
     "hookify@claude-plugins-official": true,
     "claude-md-management@claude-plugins-official": true
   },
-  "theme": "dark"
+  "theme": "dark",
+  "skipDangerousModePermissionPrompt": true
 }
