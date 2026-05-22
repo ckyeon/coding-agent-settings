@@ -1,0 +1,13 @@
+{
+  "provenance": [
+    {
+      "source": "https://github.com/modelcontextprotocol/servers",
+      "commit": "b1e1eb1a55847e0dcf78deb8ee821e2e46150a47",
+      "path": "src/fetch",
+      "license": "MIT",
+      "adopted-as": "inspired-by",
+      "adopted-at": "2026-05-22",
+      "notes": "Stdio MCP server. Registered per-machine via 'claude mcp add fetch --scope user -- uvx mcp-server-fetch'. No secrets required."
+    }
+  ]
+}
