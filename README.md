@@ -5,8 +5,8 @@ Personal Claude Code settings, version-controlled across **scopes** (User / Proj
 ## Quick start
 
 ```bash
-git clone <this-repo> ~/workspace/toy-project/coding-agent-settings
-cd ~/workspace/toy-project/coding-agent-settings
+git clone <this-repo>
+cd coding-agent-settings
 ./install.sh
 ```
 
@@ -94,7 +94,7 @@ Reference from `user/shared/settings.json` as `~/.claude/hooks/os/notify.sh` —
 In a new project directory:
 
 ```bash
-TEMPLATES=~/workspace/toy-project/coding-agent-settings/project-templates
+TEMPLATES=<path-to-coding-agent-settings>/project-templates
 cp -r "$TEMPLATES/_base/." .
 cp -r "$TEMPLATES/nodejs/." .                  # pick one: nodejs / python / go
 cat "$TEMPLATES/_base/.gitignore.snippet" >> .gitignore
@@ -109,8 +109,8 @@ Claude Code creates `.claude/settings.local.json` on demand — it's already git
 On a second machine:
 
 ```bash
-git clone <this-repo> ~/workspace/toy-project/coding-agent-settings
-cd ~/workspace/toy-project/coding-agent-settings
+git clone <this-repo>
+cd coding-agent-settings
 ./install.sh   # auto-detects OS, picks user/{mac,linux} accordingly
 ```
 
