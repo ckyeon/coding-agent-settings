@@ -1,0 +1,13 @@
+{
+  "provenance": [
+    {
+      "source": "https://github.com/anthropics/claude-plugins-official.git",
+      "commit": "3449c10cd1f254c2529a4a7e96a094ef118a00a5",
+      "path": "plugins/skill-creator",
+      "license": "Apache-2.0",
+      "adopted-as": "inspired-by",
+      "adopted-at": "2026-05-24",
+      "notes": "Installed via Claude Code's official /plugin install skill-creator@claude-plugins-official. This repo tracks provenance only; no files are copied. Plugin provides skill creation, optimization, eval running, and performance benchmarking with variance analysis."
+    }
+  ]
+}
