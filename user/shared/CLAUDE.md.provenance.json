@@ -8,6 +8,12 @@
       "adopted-as": "copied",
       "adopted-at": "2026-05-21",
       "notes": "Andrej Karpathy behavioral guidelines for LLM coding"
+    },
+    {
+      "source": "self",
+      "adopted-as": "inspired-by",
+      "adopted-at": "2026-05-24",
+      "notes": "Substantially rewritten: positive framing, merged sections 1+5, added trivial heuristic, added bad/good example. Based on research (Trust Over Fear arXiv:2603.14373, Compact Constraint Encoding arXiv:2604.07192, Augment Code length study)."
     }
   ]
 }
