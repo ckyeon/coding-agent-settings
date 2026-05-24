@@ -42,6 +42,7 @@ _Last generated: 2026-05-24_
 | `user/shared/mcp/github` | https://github.com/github/github-mcp-server | `1add5fe2` | `.` | inspired-by | MIT | 2026-05-22 |
 | `user/shared/mcp/sequential-thinking` | https://github.com/modelcontextprotocol/servers | `b1e1eb1a` | `src/sequentialthinking` | inspired-by | MIT | 2026-05-22 |
 | `user/shared/plugins/claude-md-management` | https://github.com/anthropics/claude-plugins-official.git | `6cc16f4b` | `plugins/claude-md-management` | inspired-by | Apache-2.0 | 2026-05-21 |
+| `user/shared/plugins/commit-commands` | https://github.com/anthropics/claude-plugins-official.git | `3449c10c` | `plugins/commit-commands` | inspired-by | Apache-2.0 | 2026-05-24 |
 | `user/shared/plugins/hookify` | https://github.com/anthropics/claude-plugins-official.git | `6cc16f4b` | `plugins/hookify` | inspired-by | Apache-2.0 | 2026-05-21 |
 
 ## By source
@@ -49,6 +50,7 @@ _Last generated: 2026-05-24_
 ### https://github.com/anthropics/claude-plugins-official.git
 
 - `user/shared/plugins/claude-md-management` (inspired-by @ `6cc16f4b`, Apache-2.0)
+- `user/shared/plugins/commit-commands` (inspired-by @ `3449c10c`, Apache-2.0)
 - `user/shared/plugins/hookify` (inspired-by @ `6cc16f4b`, Apache-2.0)
 
 ### https://github.com/github/github-mcp-server

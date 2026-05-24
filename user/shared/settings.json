@@ -5,8 +5,9 @@
   },
   "enabledPlugins": {
     "hookify@claude-plugins-official": true,
-    "claude-md-management@claude-plugins-official": true
+    "claude-md-management@claude-plugins-official": true,
+    "commit-commands@claude-plugins-official": true
   },
-  "theme": "dark",
-  "skipDangerousModePermissionPrompt": true
+  "skipDangerousModePermissionPrompt": true,
+  "theme": "dark"
 }
