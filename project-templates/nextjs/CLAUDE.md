@@ -18,4 +18,4 @@ Next.js project. Replace `{{PROJECT_NAME}}` and fill in the sections below.
 
 - Next.js version: pinned in `package.json`
 - Package manager: npm (swap to pnpm/yarn if applicable)
-- 7 skills are pre-installed under `.claude/skills/` and auto-trigger on relevant topics (Next.js best practices, React performance, composition patterns, view transitions, Vercel optimization, deployment, web design guidelines). No manual invocation needed.
+- 9 skills are pre-installed under `.claude/skills/` and auto-trigger on relevant topics (Next.js best practices, React performance, composition patterns, view transitions, Vercel optimization, deployment, web design guidelines, browser automation, QA/dogfooding). No manual invocation needed.
