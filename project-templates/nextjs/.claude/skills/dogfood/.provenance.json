@@ -1,0 +1,12 @@
+{
+  "provenance": [
+    {
+      "source": "https://github.com/vercel-labs/agent-browser",
+      "commit": "4ad284890cb59564af603e6de403dd75dd19e832",
+      "path": "skill-data/dogfood",
+      "license": "MIT",
+      "adopted-as": "copied",
+      "adopted-at": "2026-05-25"
+    }
+  ]
+}
