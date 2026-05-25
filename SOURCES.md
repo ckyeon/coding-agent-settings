@@ -8,6 +8,7 @@ _Last generated: 2026-05-25_
 | Local path | Source | Commit | Path in source | Mode | License | Adopted |
 |---|---|---|---|---|---|---|
 | `project-templates/nextjs/.claude/skills/composition-patterns` | https://github.com/vercel-labs/agent-skills | `18a24346` | `skills/composition-patterns` | copied | MIT | 2026-05-25 |
+| `project-templates/nextjs/.claude/skills/core` | https://github.com/vercel-labs/agent-browser | `4ad28489` | `skill-data/core` | copied | MIT | 2026-05-25 |
 | `project-templates/nextjs/.claude/skills/deploy-to-vercel` | https://github.com/vercel-labs/agent-skills | `18a24346` | `skills/deploy-to-vercel` | copied | MIT | 2026-05-25 |
 | `project-templates/nextjs/.claude/skills/next-best-practices` | https://github.com/vercel-labs/next-skills | `dc1de9ca` | `skills/next-best-practices` | copied | UNLICENSED | 2026-05-25 |
 | `project-templates/nextjs/.claude/skills/react-best-practices` | https://github.com/vercel-labs/agent-skills | `18a24346` | `skills/react-best-practices` | copied | MIT | 2026-05-25 |
@@ -199,6 +200,10 @@ _Last generated: 2026-05-25_
 
 - `user/shared/mcp/context7` (inspired-by @ `7cacc946`, MIT)
 - `user/shared/mcp/context7` (inspired-by @ `ee0bb7a6`, MIT)
+
+### https://github.com/vercel-labs/agent-browser
+
+- `project-templates/nextjs/.claude/skills/core` (copied @ `4ad28489`, MIT)
 
 ### https://github.com/vercel-labs/agent-skills
 
