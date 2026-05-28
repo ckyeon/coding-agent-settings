@@ -53,7 +53,13 @@ Run `bin/check-updates` or use the `/check-updates` skill in a Claude Code sessi
 
 ### Record a decision
 
-When a change is hard to reverse, surprising without context, or the result of a real trade-off — record it in `docs/adr/`:
+Record in `docs/adr/` when a future session would re-ask "why?" — i.e. the rationale isn't obvious from the code, config, or git history alone — **and** at least one of:
+
+- The decision was informed by external evidence (docs, research, benchmarks).
+- It affects how agents interact with this repo's content (CLAUDE.md, skills, workflows, templates).
+- A real alternative was considered and rejected.
+
+Steps:
 
 1. Pick the next sequential number: `docs/adr/NNNN-slug.md`.
 2. Write a short title + 1-3 sentence summary (what was decided and why). Optional sections: Status, Considered Options, Consequences — only when they add genuine value.
