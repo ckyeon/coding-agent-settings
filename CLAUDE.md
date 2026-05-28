@@ -11,6 +11,7 @@ This repo manages Claude Code settings across User and Project scopes, with prov
 - `project-templates/{_base,nodejs,nextjs,python,go,phaser}/` — Templates copied into new projects via manual `cp -r` (no scaffold script).
 - `bin/adopt`, `bin/sources-index`, `bin/check-updates` — Provenance tooling. JSON sidecars + auto-generated `SOURCES.md`.
 - `docs/PROVENANCE.md` — Schema and edge cases for provenance.
+- `docs/adr/` — Architecture Decision Records for this repo's own operational decisions.
 
 ## Workflows
 
@@ -50,6 +51,14 @@ Just create the file or folder under `user/shared/{skills,commands,agents,hooks,
 
 Run `bin/check-updates` or use the `/check-updates` skill in a Claude Code session. The script compares pinned commits against upstream HEAD; the skill also auto-investigates whether tracked paths actually changed.
 
+### Record a decision
+
+When a change is hard to reverse, surprising without context, or the result of a real trade-off — record it in `docs/adr/`:
+
+1. Pick the next sequential number: `docs/adr/NNNN-slug.md`.
+2. Write a short title + 1-3 sentence summary (what was decided and why). Optional sections: Status, Considered Options, Consequences — only when they add genuine value.
+3. Commit with the change it documents.
+
 ### Update an adoption to a newer upstream commit
 
 Re-run `bin/adopt` against the same destination with the new SHA. The sidecar's `provenance[]` list gets a new entry appended; the older entry stays as history.
@@ -69,4 +78,5 @@ Re-run `bin/adopt` against the same destination with the new SHA. The sidecar's 
 
 - [`README.md`](README.md) — install workflow, scope model, OS handling
 - [`docs/PROVENANCE.md`](docs/PROVENANCE.md) — provenance schema, conventions, edge cases
+- [`docs/adr/`](docs/adr/) — decision records
 - `bin/adopt --help` — adoption CLI reference
